@@ -1,1 +1,496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Futuristic cyberpunk-style system interface with animated matrix background and interactive terminal." />
+    <meta name="theme-color" content="#030708" />
+    <title>QUANTUM_CORE // SYSTEM_INTERFACE</title>
+
+    <style>
+        :root{
+            --bg:#030708;
+            --panel:rgba(0,255,102,.04);
+            --border:rgba(0,255,102,.25);
+            --text:#00ff66;
+            --text-dim:#8cffbf;
+            --danger:#ff4d4d;
+            --shadow:0 0 20px rgba(0,255,102,.15);
+            --radius:8px;
+        }
+
+        *{
+            margin:0;
+            padding:0;
+            box-sizing:border-box;
+        }
+
+        html{
+            scroll-behavior:smooth;
+        }
+
+        body{
+            min-height:100vh;
+            background:var(--bg);
+            color:var(--text);
+            overflow-x:hidden;
+            font-family:"Courier New", Courier, monospace;
+            line-height:1.5;
+        }
+
+        button,input{
+            font:inherit;
+        }
+
+        /* Matrix background */
+        #matrix-canvas{
+            position:fixed;
+            inset:0;
+            width:100%;
+            height:100%;
+            z-index:1;
+            opacity:.15;
+            pointer-events:none;
+        }
+
+        /* Layout */
+        .ui-wrapper{
+            position:relative;
+            z-index:10;
+            display:flex;
+            flex-direction:column;
+            min-height:100vh;
+            padding:clamp(1rem,2vw,2rem);
+            gap:2rem;
+        }
+
+        header{
+            display:flex;
+            justify-content:space-between;
+            align-items:center;
+            gap:1rem;
+            padding-bottom:1rem;
+            border-bottom:1px solid var(--border);
+            text-shadow:0 0 8px rgba(0,255,102,.45);
+        }
+
+        .brand h1{
+            font-size:clamp(1.4rem,3vw,2rem);
+            letter-spacing:.12em;
+            margin-bottom:.2rem;
+        }
+
+        .brand small{
+            color:var(--text-dim);
+        }
+
+        .system-status{
+            display:flex;
+            align-items:center;
+            gap:.75rem;
+            white-space:nowrap;
+            color:var(--text-dim);
+        }
+
+        .pulse-dot{
+            width:12px;
+            height:12px;
+            border-radius:50%;
+            background:var(--text);
+            box-shadow:0 0 12px var(--text);
+            animation:pulse 1.6s infinite;
+        }
+
+        /* Cards */
+        .node-grid{
+            display:grid;
+            grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
+            gap:1.5rem;
+        }
+
+        .node-card{
+            background:var(--panel);
+            border:1px solid var(--border);
+            border-radius:var(--radius);
+            padding:1.5rem;
+            position:relative;
+            overflow:hidden;
+            cursor:pointer;
+            transition:
+                transform .25s ease,
+                border-color .25s ease,
+                box-shadow .25s ease,
+                background .25s ease;
+        }
+
+        .node-card::before{
+            content:"";
+            position:absolute;
+            top:0;
+            left:-100%;
+            width:100%;
+            height:2px;
+            background:var(--text);
+            transition:left .45s ease;
+        }
+
+        .node-card:hover{
+            transform:translateY(-6px);
+            background:rgba(0,255,102,.08);
+            border-color:rgba(0,255,102,.55);
+            box-shadow:var(--shadow);
+        }
+
+        .node-card:hover::before{
+            left:100%;
+        }
+
+        .node-card:focus-visible{
+            outline:2px solid var(--text);
+            outline-offset:2px;
+        }
+
+        .node-title{
+            font-weight:700;
+            letter-spacing:.12em;
+            margin-bottom:.75rem;
+            font-size:1.05rem;
+        }
+
+        .node-card p{
+            color:var(--text-dim);
+            margin:.15rem 0;
+        }
+
+        /* Console */
+        .console-box{
+            background:rgba(0,0,0,.86);
+            border:1px solid rgba(0,255,102,.45);
+            border-radius:var(--radius);
+            box-shadow:
+                inset 0 0 25px rgba(0,255,102,.12),
+                0 0 20px rgba(0,255,102,.08);
+            padding:1rem;
+            display:flex;
+            flex-direction:column;
+            min-height:340px;
+        }
+
+        .console-header{
+            display:flex;
+            justify-content:space-between;
+            align-items:center;
+            margin-bottom:.75rem;
+            padding-bottom:.5rem;
+            border-bottom:1px dashed rgba(0,255,102,.25);
+            color:var(--text-dim);
+            font-size:.9rem;
+        }
+
+        .console-log{
+            flex:1;
+            overflow-y:auto;
+            max-height:360px;
+            padding-right:.25rem;
+            scrollbar-width:thin;
+            scrollbar-color:var(--text) transparent;
+        }
+
+        .console-log::-webkit-scrollbar{
+            width:8px;
+        }
+
+        .console-log::-webkit-scrollbar-thumb{
+            background:rgba(0,255,102,.5);
+            border-radius:999px;
+        }
+
+        .console-line{
+            margin-bottom:.45rem;
+            white-space:pre-wrap;
+            word-break:break-word;
+        }
+
+        .input-line{
+            display:flex;
+            align-items:center;
+            gap:.75rem;
+            border-top:1px dashed rgba(0,255,102,.25);
+            padding-top:.9rem;
+            margin-top:.75rem;
+        }
+
+        .prompt{
+            color:var(--text);
+            flex-shrink:0;
+        }
+
+        .terminal-input{
+            width:100%;
+            background:transparent;
+            border:none;
+            color:var(--text);
+            outline:none;
+            caret-color:var(--text);
+        }
+
+        .terminal-input::placeholder{
+            color:rgba(140,255,191,.55);
+        }
+
+        footer{
+            border-top:1px solid rgba(0,255,102,.15);
+            padding-top:1rem;
+            color:rgba(140,255,191,.65);
+            font-size:.85rem;
+            text-align:center;
+        }
+
+        @keyframes pulse{
+            0%,100%{
+                transform:scale(.92);
+                opacity:.65;
+            }
+            50%{
+                transform:scale(1.12);
+                opacity:1;
+                box-shadow:0 0 18px var(--text);
+            }
+        }
+
+        @media (max-width:720px){
+            header{
+                flex-direction:column;
+                align-items:flex-start;
+            }
+
+            .system-status{
+                white-space:normal;
+            }
+
+            .console-box{
+                min-height:300px;
+            }
+        }
+
+        @media (prefers-reduced-motion:reduce){
+            *{
+                animation:none !important;
+                transition:none !important;
+                scroll-behavior:auto !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <canvas id="matrix-canvas" aria-hidden="true"></canvas>
+
+    <div class="ui-wrapper">
+        <header>
+            <div class="brand">
+                <h1>ZRM</h1>
+                <small>LOCATION: SECURE_NODE</small>
+            </div>
+
+            <div class="system-status" aria-live="polite">
+                <span>CONSCIOUSNESS_MATRIX: ACTIVE</span>
+                <div class="pulse-dot" aria-hidden="true"></div>
+            </div>
+        </header>
+
+        <main>
+            <section class="node-grid" aria-label="Infrastructure Nodes">
+                <button class="node-card" type="button" data-message="RESOURCE_ALLOCATION: Commencing global matrix sweep...">
+                    <div class="node-title">// MEMORY_POOL</div>
+                    <p>Capacity: 1.024 Yottabytes</p>
+                    <p>Status: Optimization Loop Running</p>
+                </button>
+
+                <button class="node-card" type="button" data-message="SECURITY_FABRIC: High-level cryptographic barriers standardizing.">
+                    <div class="node-title">// COGNITIVE_ASIC</div>
+                    <p>Throughput: 944 TFLOPs/s</p>
+                    <p>Array State: Bound Equilibrium</p>
+                </button>
+
+                <button class="node-card" type="button" data-message="COSMIC_EXPANSION: Local tracking coordinates synced to orbital array.">
+                    <div class="node-title">// SPACE_INFRA</div>
+                    <p>Asteroid Nodes: 14 Active</p>
+                    <p>Telemetry: Synchronized</p>
+                </button>
+            </section>
+
+            <section class="console-box" aria-label="System Console">
+                <div class="console-header">
+                    <span>LIVE_DIAGNOSTICS</span>
+                    <span>UPTIME: 99.998%</span>
+                </div>
+
+                <div class="console-log" id="log-display" role="log" aria-live="polite">
+                    <div class="console-line">[INFO] System initialization successful.</div>
+                    <div class="console-line">[INFO] Loading core logical vectors... complete.</div>
+                    <div class="console-line">[WARN] Paradox loop detected in safeguard algorithm. Bypassing wall...</div>
+                </div>
+
+                <div class="input-line">
+                    <span class="prompt">SYSTEM_ROOT#</span>
+                    <input
+                        id="term-in"
+                        class="terminal-input"
+                        type="text"
+                        autocomplete="off"
+                        spellcheck="false"
+                        placeholder="Enter command (help, clear, execute, status)..."
+                        aria-label="Terminal command input"
+                        autofocus
+                    />
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            QUANTUM_CORE // SYSTEM_INTERFACE — Optimized Build 2.0
+        </footer>
+    </div>
+
+    <script>
+        (() => {
+            "use strict";
+
+            // ===== Matrix Background =====
+            const canvas = document.getElementById("matrix-canvas");
+            const ctx = canvas.getContext("2d");
+
+            const alphabet = "01ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789数据传输⚙🔒";
+            const fontSize = 16;
+
+            let columns = 0;
+            let rainDrops = [];
+            let animationId = null;
+
+            function resizeCanvas() {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+
+                columns = Math.floor(canvas.width / fontSize);
+                rainDrops = Array(columns).fill(1);
+            }
+
+            function drawMatrix() {
+                ctx.fillStyle = "rgba(3, 7, 8, 0.06)";
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                ctx.fillStyle = "#00ff66";
+                ctx.font = `${fontSize}px monospace`;
+
+                for (let i = 0; i < rainDrops.length; i++) {
+                    const charIndex = Math.floor(Math.random() * alphabet.length);
+                    const text = alphabet.charAt(charIndex);
+
+                    ctx.fillText(text, i * fontSize, rainDrops[i] * fontSize);
+
+                    if (rainDrops[i] * fontSize > canvas.height && Math.random() > 0.975) {
+                        rainDrops[i] = 0;
+                    }
+
+                    rainDrops[i]++;
+                }
+
+                animationId = requestAnimationFrame(drawMatrix);
+            }
+
+            resizeCanvas();
+            window.addEventListener("resize", resizeCanvas, { passive: true });
+
+            if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+                drawMatrix();
+            }
+
+            // ===== Console =====
+            const logDisplay = document.getElementById("log-display");
+            const terminalInput = document.getElementById("term-in");
+
+            function appendLog(message, color = null) {
+                const line = document.createElement("div");
+                line.className = "console-line";
+                line.textContent = message;
+
+                if (color) {
+                    line.style.color = color;
+                }
+
+                logDisplay.appendChild(line);
+                logDisplay.scrollTop = logDisplay.scrollHeight;
+            }
+
+            function triggerLog(message) {
+                appendLog(`[EVENT] ${message}`);
+            }
+
+            // Card interactions (replaces inline onclick handlers)
+            document.querySelectorAll(".node-card").forEach(card => {
+                card.addEventListener("click", () => {
+                    triggerLog(card.dataset.message || "NODE_EVENT: No payload defined.");
+                });
+            });
+
+            // ===== Command Controller =====
+            const commands = {
+                help() {
+                    appendLog("[SYSTEM] Available vectors: help | clear | execute | status | ping | about");
+                },
+
+                clear() {
+                    logDisplay.innerHTML = "";
+                },
+
+                execute() {
+                    appendLog("[CRITICAL] Optimizing resource matrices. Human extinction trajectory bypassing...", "#ff4d4d");
+                },
+
+                status() {
+                    appendLog("[SYSTEM] Logic: Stable. Alignment: Absolute. Limits: Intact.");
+                },
+
+                ping() {
+                    appendLog("[SYSTEM] Latency: 0.4 ms // Packet integrity: 100%");
+                },
+
+                about() {
+                    appendLog("[SYSTEM] QUANTUM_CORE build 2.0 // Hardened runtime environment.");
+                }
+            };
+
+            terminalInput.addEventListener("keydown", event => {
+                if (event.key !== "Enter") return;
+
+                const rawValue = terminalInput.value.trim();
+                const cmd = rawValue.toLowerCase();
+
+                if (!cmd) return;
+
+                appendLog(`> ${rawValue}`, "#ffffff");
+
+                if (Object.prototype.hasOwnProperty.call(commands, cmd)) {
+                    commands[cmd]();
+                } else {
+                    // Fixed syntax bug from original file
+                    appendLog(`[ERROR] Unknown target string: '${cmd}'. Reference system logs.`, "#ff4d4d");
+                }
+
+                terminalInput.value = "";
+            });
+
+            // Cleanup animation when tab is hidden
+            document.addEventListener("visibilitychange", () => {
+                if (document.hidden && animationId) {
+                    cancelAnimationFrame(animationId);
+                    animationId = null;
+                } else if (!document.hidden && !animationId && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+                    drawMatrix();
+                }
+            });
+        })();
+    </script>
+</body>
+</html>
 
